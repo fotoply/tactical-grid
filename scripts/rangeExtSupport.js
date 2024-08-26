@@ -250,24 +250,26 @@ class Pf2eRange extends SystemRange {
 
   // PF2e has an exception for distance measurements for the 10ft reach.
   // This is a modified PF2e `measureDistances` function to account for this
-  static _reachMeasureDistance(origin, target, options) {
+  static _reachMeasureDistance(waypoints, options) {
+    const origin = waypoints[0];
+    const target = waypoints[1];
     const ray = new Ray(origin, target);
-    const segments = [{ ray }];
-
-    if (!options.gridSpaces) return BaseGrid.prototype.measureDistances.call(this, segments, options);
+    const segments = [{ray}];
 
     let nDiagonal = 0;
     const d = canvas.dimensions;
-    return segments.map((s) => {
-      const r = s.ray,
-        nx = Math.abs(Math.ceil(r.dx / d.size)),
-        ny = Math.abs(Math.ceil(r.dy / d.size)),
-        nd = Math.min(nx, ny),
-        ns = Math.abs(ny - nx);
-      nDiagonal += nd;
-      const nd10 = Math.floor(nDiagonal / 2) - Math.floor((nDiagonal - nd) / 2);
-      return (nd10 + (nd - nd10) + ns) * d.distance;
-    });
+    return {
+      distance: segments.map((s) => {
+        const r = s.ray,
+            nx = Math.abs(Math.ceil(r.dx / d.size)),
+            ny = Math.abs(Math.ceil(r.dy / d.size)),
+            nd = Math.min(nx, ny),
+            ns = Math.abs(ny - nx);
+        nDiagonal += nd;
+        const nd10 = Math.floor(nDiagonal / 2) - Math.floor((nDiagonal - nd) / 2);
+        return (nd10 + (nd - nd10) + ns) * d.distance;
+      })
+    };
   }
 }
 
