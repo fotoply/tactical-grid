@@ -236,6 +236,11 @@ class Pf2eRange extends SystemRange {
       if (Number.isFinite(rangeVal)) range = rangeVal;
     }
 
+    const volleyTrait = item.traits.find(i => i.startsWith("volley"));
+    if (volleyTrait) {
+      const volleyRange = parseInt(volleyTrait.split("-")?.[1]);
+      if (volleyRange) ranges.push({range: volleyRange, color:"#ff0000"});
+    }
     if (range) ranges.push(range);
     if (longRange) ranges.push(longRange);
 

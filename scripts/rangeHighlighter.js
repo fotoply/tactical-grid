@@ -419,25 +419,26 @@ export class RangeHighlightAPI {
       return;
     }
 
+    var skipped = 0
     const colors = MODULE_CONFIG.range.colors;
 
     // Process numerical and object ranges assigning them color configurations as per module settings
     ranges = ranges
-      .sort((a, b) => a.range - b.range)
-      .map((r, i) => {
-        const c = i < colors.length ? colors[i] : MODULE_CONFIG.range.defaultColor;
-
-        if (Number.isFinite(r)) {
-          return {
-            range: r,
-            ...c,
-          };
-        } else if (r.color == null && r.lineColor == null) {
-          const c = i < colors.length ? colors[i] : MODULE_CONFIG.range.defaultColor;
-          return { ...c, ...r };
-        }
-        return r;
-      });
+        .sort((a, b) => a.range - b.range)
+        .map((r, i) => {
+          const c = i < colors.length ? colors[i-skipped] : MODULE_CONFIG.range.defaultColor;
+          if (Number.isFinite(r)) {
+            return {
+              range: r,
+              ...c,
+            };
+          } else if (r.color == null && r.lineColor == null) {
+            const c = i < colors.length ? colors[i-skipped] : MODULE_CONFIG.range.defaultColor;
+            return { ...c, ...r };
+          }
+          skipped += 1;
+          return r;
+        });
 
     if (foundry.utils.isNewerVersion(game.version, 12)) new RangeHighlighterV12(token, ranges, { roundToken });
     else new RangeHighlighter(token, ranges, { roundToken });
