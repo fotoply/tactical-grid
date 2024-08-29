@@ -228,7 +228,7 @@ class Pf2eRange extends SystemRange {
         const ranges = [];
 
         let range = item.range?.increment;
-        let longRange = item.range?.max;
+        let incrementRange = item.range?.increment;
 
         let rangeVal = item.system.range?.value;
         if (rangeVal) {
@@ -242,7 +242,12 @@ class Pf2eRange extends SystemRange {
             if (volleyRange) ranges.push({range: volleyRange, color: "#ff0000"});
         }
         if (range) ranges.push(range);
-        if (longRange) ranges.push(longRange);
+        if (incrementRange) {
+            for(let i = 0; i < 4; i++) { // Only do it till 4 since the first increment is handled above
+                let currentIncrement = incrementRange*(i+2);
+                ranges.push(currentIncrement);
+            }
+        }
 
         if (!ranges.length && item.isMelee) {
             const playerReach = item.parent.system.attributes?.reach?.manipulate === 5 ? item.parent.system.attributes?.reach?.base - 5 : 0;
