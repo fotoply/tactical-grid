@@ -232,6 +232,7 @@ class Pf2eRange extends SystemRange {
 
         let rangeVal = item.system.range?.value;
         if (rangeVal) {
+            if (rangeVal === "touch") rangeVal = 5;
             rangeVal = parseInt(rangeVal);
             if (Number.isFinite(rangeVal)) range = rangeVal;
         }
@@ -247,6 +248,7 @@ class Pf2eRange extends SystemRange {
             const volleyRange = parseInt(volleyTrait.split("-")?.[1]);
             if (volleyRange) ranges.push({range: volleyRange, color: "#ff0000"});
         }
+
         if (range) {
             if (item.type === "spell") {
                 if (item?.parent?.synthetics?.toggles?.all?.spellshape?.checked === true) {
