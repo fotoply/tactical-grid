@@ -236,12 +236,32 @@ class Pf2eRange extends SystemRange {
             if (Number.isFinite(rangeVal)) range = rangeVal;
         }
 
+        if (!range) {
+            if (item.range?.max) {
+                range = item.range.max;
+            }
+        }
+
         const volleyTrait = item.traits.find(i => i.startsWith("volley"));
         if (volleyTrait) {
             const volleyRange = parseInt(volleyTrait.split("-")?.[1]);
             if (volleyRange) ranges.push({range: volleyRange, color: "#ff0000"});
         }
-        if (range) ranges.push(range);
+        if (range) {
+            if (item.type === "spell") {
+                if (item?.parent?.synthetics?.toggles?.all?.spellshape?.checked === true) {
+                    let reachSpellshape = item?.parent?.synthetics?.toggles?.all?.spellshape?.suboptions.find(option => option.value === "reach-spell");
+                    if (reachSpellshape && reachSpellshape?.selected) {
+                        if(range === 5) {
+                            range = 30;
+                        } else {
+                            range += 30;
+                        }
+                    }
+                }
+            }
+            ranges.push(range);
+        }
         if (incrementRange) {
             for(let i = 0; i < 4; i++) { // Only do it till 4 since the first increment is handled above
                 let currentIncrement = incrementRange*(i+2);
