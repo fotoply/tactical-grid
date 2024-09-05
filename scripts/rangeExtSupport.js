@@ -243,7 +243,7 @@ class Pf2eRange extends SystemRange {
             }
         }
 
-        const volleyTrait = item.traits.find(i => i.startsWith("volley"));
+        const volleyTrait = item?.traits?.find(i => i.startsWith("volley"));
         if (volleyTrait) {
             const volleyRange = parseInt(volleyTrait.split("-")?.[1]);
             if (volleyRange) ranges.push({range: volleyRange, color: "#ff0000"});
