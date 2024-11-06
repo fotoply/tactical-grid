@@ -256,20 +256,30 @@ class Pf2eRange extends SystemRange {
     static getItemRange(item) {
         const ranges = [];
 
-        let range = item.range?.increment;
-        let incrementRange = item.range?.increment;
+        if (item.range) {
+            let increment = item.range.increment;
+            let maxRange = item.range.max;
 
-        let rangeVal = item.system.range?.value;
-        if (rangeVal) {
-            if (rangeVal === "touch") rangeVal = 5;
-            rangeVal = parseInt(rangeVal);
-            if (Number.isFinite(rangeVal)) range = rangeVal;
+            if (increment && maxRange) {
+                let range = 0;
+                let maxIncrementCount = 6;
+                while (range < maxRange && maxIncrementCount > 0) {
+                    range += increment;
+                    if (range > maxRange) range = maxRange;
+                    maxIncrementCount--;
+                    ranges.push(range);
+                }
+            } else if (increment) {
+                ranges.push(increment);
+            } else if (maxRange) {
+                ranges.push(maxRange);
+            }
         }
 
-        if (!range) {
-            if (item.range?.max) {
-                range = item.range.max;
-            }
+        let range = item.system.range?.value;
+        if (range) {
+            range = parseInt(range);
+            if (Number.isFinite(range)) range = range;
         }
 
         const volleyTrait = item?.traits?.find(i => i.startsWith("volley"));
@@ -292,12 +302,6 @@ class Pf2eRange extends SystemRange {
                 }
             }
             ranges.push(range);
-        }
-        if (incrementRange) {
-            for(let i = 0; i < 4; i++) { // Only do it till 4 since the first increment is handled above
-                let currentIncrement = incrementRange*(i+2);
-                ranges.push(currentIncrement);
-            }
         }
 
         if (!ranges.length && item.isMelee) {
