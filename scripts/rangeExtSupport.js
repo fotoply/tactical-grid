@@ -306,8 +306,21 @@ class Pf2eRange extends SystemRange {
 
         if (!ranges.length && item.isMelee) {
             const playerReach = item.parent.system.attributes?.reach?.manipulate === 5 ? item.parent.system.attributes?.reach?.base - 5 : 0;
-            let reach = item.reach ? item.reach : (item.traits.has("reach") ? 10 : 5);
-            reach += playerReach;
+            let reach = item?.reach;
+            if (!reach) {
+                item.traits.filter(trait => trait.startsWith("reach")).forEach(trait => {
+                    if (trait === "reach") {
+                        reach = 10;
+                    }
+                    const reachValue = parseInt(trait.split("-")?.[1]);
+                    if (reachValue) {
+                        reach = reachValue;
+                    }
+                });
+            }
+            if (playerReach) {
+                reach += playerReach;
+            }
             if (reach) {
                 if (reach <= 10) {
                     ranges.push({range: reach, measureDistance: this._reachMeasureDistance});
