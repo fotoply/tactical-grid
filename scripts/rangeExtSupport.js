@@ -323,9 +323,13 @@ class Pf2eRange extends SystemRange {
                     }
                 });
             }
+            if (!reach) {
+                reach = 5;
+            }
             if (playerReach) {
                 reach += playerReach;
             }
+
             if (reach) {
                 if (reach <= 10) {
                     ranges.push({range: reach, measureDistance: this._reachMeasureDistance});
