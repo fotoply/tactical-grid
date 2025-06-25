@@ -2,7 +2,7 @@ import { MODULE_CLIENT_CONFIG, MODULE_CONFIG } from '../applications/settings.js
 import { CustomSpriteMaskFilter } from '../filters/CustomSpriteMaskFilter.js';
 import { MODULE_ID, cleanLayerName, getDispositionColor, getGridColorString } from './utils.js';
 
-export class GridMaskContainer extends CachedContainer {
+export class GridMaskContainer extends foundry.canvas.containers.CachedContainer {
   /** @override */
   clearColor = [0, 0, 0, 0];
 
@@ -50,10 +50,9 @@ export class GridMaskContainer extends CachedContainer {
         (MODULE_CONFIG.enableOnHover && (layer.highlightObjects || p.hover || hasPreview(p)))
     );
 
-    if (MODULE_CONFIG.enableOnRuler && typeof libWrapper === 'function') {
+    if (MODULE_CONFIG.enableOnRuler) {
       let ruler = canvas.controls.ruler;
-      if (ruler && ruler._state !== Ruler.STATES.INACTIVE) {
-        ruler.id = 'RULER';
+      if (ruler?.active) {
         if (!ruler.center) {
           Object.defineProperty(ruler, 'center', {
             get: () => ruler.destination,

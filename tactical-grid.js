@@ -1,9 +1,10 @@
 import { GridMaskContainer } from './scripts/container.js';
 import { MODULE_ID, cleanLayerName, registerGridWrappers, unregisterGridWrappers } from './scripts/utils.js';
-import { MODULE_CONFIG, registerRulerLibWrapperMethods, registerSettings } from './applications/settings.js';
+import { MODULE_CONFIG, registerSettings } from './applications/settings.js';
 import { registerKeybindings } from './scripts/keybindings.js';
 import { RangeHighlightAPI, registerRangeHighlightHooks } from './scripts/rangeHighlighter.js';
-import { registerBroadcasts } from './scripts/measurer.js';
+
+import { TacticalGridCalculator } from './scripts/calculator.js';
 
 // Container used as Grid Mask
 export const GRID_MASK = {
@@ -15,15 +16,15 @@ export const GRID_MASK = {
  *  =================================
  */
 Hooks.on('init', () => {
-  registerSettings();
-  registerKeybindings();
-  registerRangeHighlightHooks();
-  registerBroadcasts();
-
   globalThis.TacticalGrid = {
     rangeHighlight: RangeHighlightAPI.rangeHighlight,
     clearRangeHighlight: RangeHighlightAPI.clearRangeHighlight,
+    distanceCalculator: new TacticalGridCalculator(),
   };
+
+  registerSettings();
+  registerKeybindings();
+  registerRangeHighlightHooks();
 
   game.modules.get(MODULE_ID).api = globalThis.TacticalGrid;
   CONFIG.debug.atg = false;
@@ -43,7 +44,7 @@ Hooks.on('canvasReady', (canvas) => {
      *  ========================
      */
     canvas.layers
-      .filter((l) => l instanceof PlaceablesLayer)
+      .filter((l) => l instanceof foundry.canvas.layers.PlaceablesLayer)
       .forEach((layer) => {
         const layerName = cleanLayerName(layer);
         Hooks.on(`activate${layerName}`, (layer) => {
@@ -51,7 +52,7 @@ Hooks.on('canvasReady', (canvas) => {
         });
       });
     // Need to register hooks outside of `activate` as by this point we will have missed the first activation
-    if (canvas.activeLayer instanceof PlaceablesLayer) registerLayerHooks(canvas.activeLayer);
+    if (canvas.activeLayer instanceof foundry.canvas.layers.PlaceablesLayer) registerLayerHooks(canvas.activeLayer);
   }
   GRID_MASK.container.onCanvasReady();
   game.GRID_MASK = GRID_MASK;
@@ -119,10 +120,4 @@ Hooks.on('canvasInit', (canvas) => {
       unregisterGridWrappers();
     }
   }
-});
-
-// Support for 'Drag Ruler' module
-// Re-register the ruler hooks to use the extended ruler class
-Hooks.once('dragRuler.ready', () => {
-  registerRulerLibWrapperMethods();
 });

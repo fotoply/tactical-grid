@@ -1,6 +1,5 @@
 import { MODULE_CLIENT_CONFIG, MODULE_CONFIG, updateSettings } from '../applications/settings.js';
 import { GRID_MASK } from '../tactical-grid.js';
-import { DistanceMeasurer } from './measurer.js';
 import { MODULE_ID, cleanLayerName } from './utils.js';
 
 export function registerKeybindings() {
@@ -69,8 +68,8 @@ export function registerKeybindings() {
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
   });
 
-  game.keybindings.register(MODULE_ID, 'displayDistanceGridSpacing', {
-    name: 'Display Distances (Grid Spacing)',
+  game.keybindings.register(MODULE_ID, 'displayDistance', {
+    name: 'Display Distances',
     hint: '',
     editable: [
       {
@@ -79,33 +78,13 @@ export function registerKeybindings() {
       },
     ],
     onUp: () => {
-      DistanceMeasurer.keyPressed = false;
-      DistanceMeasurer.hideMeasures();
+      TacticalGrid.distanceCalculator._measureKeyDown = false;
+      TacticalGrid.distanceCalculator.hideLabels();
     },
     onDown: (event) => {
-      DistanceMeasurer.keyPressed = true;
-      DistanceMeasurer.showMeasures();
-    },
-    restricted: false,
-    precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,
-  });
-
-  game.keybindings.register(MODULE_ID, 'displayDistance', {
-    name: 'Display Distances',
-    hint: '',
-    editable: [
-      {
-        key: 'KeyH',
-        modifiers: ['Shift'],
-      },
-    ],
-    onUp: () => {
-      DistanceMeasurer.keyPressed = false;
-      DistanceMeasurer.hideMeasures();
-    },
-    onDown: () => {
-      DistanceMeasurer.keyPressed = true;
-      DistanceMeasurer.showMeasures({ gridSpaces: false });
+      TacticalGrid.distanceCalculator._measureKeyDown = true;
+      const token = canvas.tokens.hover ?? canvas.tokens.controlled[0];
+      if (token) TacticalGrid.distanceCalculator.showDistanceLabelsFromToken(token);
     },
     restricted: false,
     precedence: CONST.KEYBINDING_PRECEDENCE.NORMAL,

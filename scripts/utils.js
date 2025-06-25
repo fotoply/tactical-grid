@@ -32,213 +32,88 @@ let registeredWrappers = [];
 export function registerGridWrappers(lineWidth) {
   if (foundry.utils.isNewerVersion(game.version, 12)) return;
   unregisterGridWrappers();
-  if (typeof libWrapper === 'function') {
-    let squareWrap;
 
-    if (isNewerVersion('11', game.version)) {
-      squareWrap = libWrapper.register(
-        MODULE_ID,
-        'SquareGrid.prototype._drawLine',
-        function (points, lineColor, lineAlpha) {
-          let line = new PIXI.Graphics();
-          line.lineStyle(lineWidth, lineColor, lineAlpha).moveTo(points[0], points[1]).lineTo(points[2], points[3]);
-          return line;
-        },
-        'OVERRIDE'
-      );
-    } else {
-      squareWrap = libWrapper.register(
-        MODULE_ID,
-        'SquareGrid.prototype.draw',
-        function (options = {}) {
-          Object.getPrototypeOf(SquareGrid).prototype.draw.call(this, options);
-          // SquareGrid.prototype.draw.call(this, options);
-          let { color, alpha, dimensions } = foundry.utils.mergeObject(this.options, options);
+  let squareWrap;
 
-          // Set dimensions
-          this.width = dimensions.width;
-          this.height = dimensions.height;
-
-          // Need to draw?
-          if (alpha === 0) return this;
-
-          // Vertical lines
-          let nx = Math.floor(dimensions.width / dimensions.size);
-          const grid = new PIXI.Graphics();
-          for (let i = 1; i < nx; i++) {
-            let x = i * dimensions.size;
-            grid.lineStyle(lineWidth, color, alpha).moveTo(x, 0).lineTo(x, dimensions.height);
-          }
-
-          // Horizontal lines
-          let ny = Math.ceil(dimensions.height / dimensions.size);
-          for (let i = 1; i < ny; i++) {
-            let y = i * dimensions.size;
-            grid.lineStyle(lineWidth, color, alpha).moveTo(0, y).lineTo(dimensions.width, y);
-          }
-          this.addChild(grid);
-          return this;
-        },
-        'OVERRIDE'
-      );
-    }
-
-    let hexWrap = libWrapper.register(
+  if (isNewerVersion('11', game.version)) {
+    squareWrap = libWrapper.register(
       MODULE_ID,
-      'HexagonalGrid.prototype._drawGrid',
-      function ({ color = null, alpha = null } = {}) {
-        color = color ?? this.options.color;
-        alpha = alpha ?? this.options.alpha;
-        const columnar = this.columnar;
-        const ncols = Math.ceil(canvas.dimensions.width / this.w);
-        const nrows = Math.ceil(canvas.dimensions.height / this.h);
-
-        // Draw Grid graphic
-        const grid = new PIXI.Graphics();
-        grid.lineStyle({ width: lineWidth, color, alpha });
-
-        // Draw hex rows
-        if (columnar) this._drawColumns(grid, nrows, ncols);
-        else this._drawRows(grid, nrows, ncols);
-        return grid;
+      'SquareGrid.prototype._drawLine',
+      function (points, lineColor, lineAlpha) {
+        let line = new PIXI.Graphics();
+        line.lineStyle(lineWidth, lineColor, lineAlpha).moveTo(points[0], points[1]).lineTo(points[2], points[3]);
+        return line;
       },
       'OVERRIDE'
     );
+  } else {
+    squareWrap = libWrapper.register(
+      MODULE_ID,
+      'SquareGrid.prototype.draw',
+      function (options = {}) {
+        Object.getPrototypeOf(SquareGrid).prototype.draw.call(this, options);
+        // SquareGrid.prototype.draw.call(this, options);
+        let { color, alpha, dimensions } = foundry.utils.mergeObject(this.options, options);
 
-    registeredWrappers.push(squareWrap);
-    registeredWrappers.push(hexWrap);
+        // Set dimensions
+        this.width = dimensions.width;
+        this.height = dimensions.height;
+
+        // Need to draw?
+        if (alpha === 0) return this;
+
+        // Vertical lines
+        let nx = Math.floor(dimensions.width / dimensions.size);
+        const grid = new PIXI.Graphics();
+        for (let i = 1; i < nx; i++) {
+          let x = i * dimensions.size;
+          grid.lineStyle(lineWidth, color, alpha).moveTo(x, 0).lineTo(x, dimensions.height);
+        }
+
+        // Horizontal lines
+        let ny = Math.ceil(dimensions.height / dimensions.size);
+        for (let i = 1; i < ny; i++) {
+          let y = i * dimensions.size;
+          grid.lineStyle(lineWidth, color, alpha).moveTo(0, y).lineTo(dimensions.width, y);
+        }
+        this.addChild(grid);
+        return this;
+      },
+      'OVERRIDE'
+    );
   }
+
+  let hexWrap = libWrapper.register(
+    MODULE_ID,
+    'HexagonalGrid.prototype._drawGrid',
+    function ({ color = null, alpha = null } = {}) {
+      color = color ?? this.options.color;
+      alpha = alpha ?? this.options.alpha;
+      const columnar = this.columnar;
+      const ncols = Math.ceil(canvas.dimensions.width / this.w);
+      const nrows = Math.ceil(canvas.dimensions.height / this.h);
+
+      // Draw Grid graphic
+      const grid = new PIXI.Graphics();
+      grid.lineStyle({ width: lineWidth, color, alpha });
+
+      // Draw hex rows
+      if (columnar) this._drawColumns(grid, nrows, ncols);
+      else this._drawRows(grid, nrows, ncols);
+      return grid;
+    },
+    'OVERRIDE'
+  );
+
+  registeredWrappers.push(squareWrap);
+  registeredWrappers.push(hexWrap);
 }
 
 export function unregisterGridWrappers() {
-  if (typeof libWrapper === 'function') {
-    for (const wrp of registeredWrappers) {
-      libWrapper.unregister(MODULE_ID, wrp, false);
-    }
-    registeredWrappers = [];
+  for (const wrp of registeredWrappers) {
+    libWrapper.unregister(MODULE_ID, wrp, false);
   }
-}
-
-/**
- * Find the nearest point on a rectangle given a point on the scene
- * @param {*} rect {minX, maxX, minY, maxY}
- * @param {*} p {x, y}
- * @returns nearest point {x, y}
- */
-export function nearestPointToRectangle(rect, p) {
-  const nearest = { x: p.x, y: p.y };
-  if (p.x < rect.minX) nearest.x = rect.minX;
-  else if (p.x > rect.maxX) nearest.x = rect.maxX;
-
-  if (p.y < rect.minY) nearest.y = rect.minY;
-  else if (p.y > rect.maxY) nearest.y = rect.maxY;
-  return nearest;
-}
-
-/**
- * Find the nearest point on a circle given a point on the scene
- * @param {*} c {x, y, r}
- * @param {*} p {x, y}
- * @returns nearest point {x, y}
- */
-export function nearestPointToCircle(c, p) {
-  // If c === p, return any edge
-  if (c.x === p.x && c.y === p.y) return { x: p.x, y: p.y };
-  let vX = p.x - c.x;
-  let vY = p.y - c.y;
-  let magV = Math.sqrt(vX * vX + vY * vY);
-  if (magV <= c.r) return { x: p.x, y: p.y };
-  return { x: c.x + (vX / magV) * c.r, y: c.y + (vY / magV) * c.r };
-}
-
-// =======================================================
-// Code Taken from MidiQOL and modified to not output logs
-// =======================================================
-
-const FULL_COVER = 999;
-const THREE_QUARTERS_COVER = 5;
-const HALF_COVER = 2;
-export function computeCoverBonus(attacker, target) {
-  let coverBonus = null;
-  if (!attacker) return null;
-
-  let calculator;
-  if (MODULE_CONFIG.cover.calculator === 'midi-qol') {
-    calculator = MidiQOL?.configSettings()?.optionalRules?.coverCalculation ?? 'none';
-  } else {
-    calculator = MODULE_CONFIG.cover.calculator;
-  }
-
-  switch (calculator) {
-    case 'levelsautocover':
-      if (!game.modules.get('levelsautocover')?.active || !game.settings.get('levelsautocover', 'apiMode')) return null;
-
-      const coverData = AutoCover.calculateCover(
-        attacker.document ? attacker : attacker.object,
-        target.document ? target : target.object
-      );
-
-      const coverDetail = AutoCover.getCoverData();
-      if (coverData.rawCover === 0) coverBonus = FULL_COVER;
-      else if (coverData.rawCover > coverDetail[1].percent) coverBonus = 0;
-      else if (coverData.rawCover < coverDetail[0].percent) coverBonus = THREE_QUARTERS_COVER;
-      else if (coverData.rawCover < coverDetail[1].percent) coverBonus = HALF_COVER;
-      if (coverData.obstructingToken) coverBonus = Math.max(2, coverBonus);
-      break;
-    case 'simbuls-cover-calculator':
-      if (!game.modules.get('simbuls-cover-calculator')?.active) return null;
-      if (globalThis.CoverCalculator) {
-        const coverData = globalThis.CoverCalculator.Cover(attacker.document ? attacker : attacker.object, target);
-        if (attacker === target) {
-          coverBonus = 0;
-          break;
-        }
-        if (coverData?.data?.results.cover === 3) coverBonus = FULL_COVER;
-        else coverBonus = -coverData?.data?.results.value ?? 0;
-      }
-      break;
-    case 'tokencover':
-      {
-        if (!game.modules.get('tokencover')?.active) return null;
-
-        const coverValue = attacker.tokencover.coverCalculator.targetCover(target);
-        if (coverValue === 0) coverBonus = 0;
-        else if (coverValue === 1) coverBonus = HALF_COVER;
-        else if (coverValue === 2) coverBonus = THREE_QUARTERS_COVER;
-        else coverBonus = FULL_COVER;
-      }
-      break;
-    case 'pf2e-perception':
-      {
-        if (!game.modules.get('pf2e-perception')?.active) return null;
-        const coverValue = game.modules.get('pf2e-perception').api.token.getCover(attacker, target);
-        switch (coverValue) {
-          case undefined:
-            coverBonus = 0;
-            break;
-          case 'lesser':
-            coverBonus = HALF_COVER;
-            break;
-          case 'standard':
-            coverBonus = THREE_QUARTERS_COVER;
-            break;
-          case 'greater':
-            coverBonus = FULL_COVER;
-            break;
-          case 'greater-prone':
-            coverBonus = FULL_COVER;
-            break;
-          default:
-            coverBonus = 0;
-        }
-      }
-      break;
-    case 'none':
-    default:
-      coverBonus = null;
-      break;
-  }
-  return coverBonus;
+  registeredWrappers = [];
 }
 
 // ===================
