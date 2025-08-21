@@ -1,6 +1,5 @@
 import { MODULE_CLIENT_CONFIG, MODULE_CONFIG } from '../applications/settings.js';
 import { ClosestPointUtilities } from './closestPointUtilities.js';
-import { computeCoverBonus } from './cover.js';
 import { tokenHasEffect } from './utils.js';
 
 export class TacticalGridCalculator {
@@ -16,7 +15,8 @@ export class TacticalGridCalculator {
   refreshTextStyle() {
     this._textStyle = foundry.canvas.containers.PreciseText.getTextStyle({
       ...MODULE_CONFIG.measurement,
-      fontFamily: [MODULE_CONFIG.measurement.fontFamily, 'fontAwesome'].join(','),
+      fontFamily: [MODULE_CONFIG.measurement.fontFamily, 'Font Awesome 6 Pro'].join(','),
+      fontWeight: '600',
     });
   }
 
@@ -194,7 +194,7 @@ export class TacticalGridCalculator {
       /// Calculate Cover
       let cover;
       if (MODULE_CONFIG.cover.calculator !== 'none' && (!MODULE_CONFIG.cover.combatOnly || game.combat?.started)) {
-        cover = computeCoverBonus(originToken, token);
+        cover = TacticalGrid.coverCalculators[MODULE_CONFIG.cover.calculator]?.calculateCover?.(originToken, token);
       }
 
       // Calculate distance
@@ -320,11 +320,11 @@ export class VolumetricUtilities {
     let targetElevation;
 
     if (originTop <= targetBottom) {
-      originElevation = originTop - canvas.grid.distance;
+      originElevation = originTop - (canvas.grid.type === CONST.GRID_TYPES.GRIDLESS ? 0 : canvas.grid.distance);
       targetElevation = targetBottom;
     } else if (originBottom >= targetTop) {
       originElevation = originBottom;
-      targetElevation = targetTop - canvas.grid.distance;
+      targetElevation = targetTop - (canvas.grid.type === CONST.GRID_TYPES.GRIDLESS ? 0 : canvas.grid.distance);
     } else {
       originElevation = originBottom;
       targetElevation = originBottom;
@@ -340,7 +340,10 @@ export class VolumetricUtilities {
     if (originPoint.elevation < targetTop && originPoint.elevation > targetBottom) {
       return targetBottom;
     } else if (originPoint.elevation >= targetTop) {
-      return originPoint.elevation - (targetTop - canvas.grid.distance - targetBottom);
+      return (
+        originPoint.elevation -
+        (targetTop - (canvas.grid.type === CONST.GRID_TYPES.GRIDLESS ? 0 : canvas.grid.distance) - targetBottom)
+      );
     }
 
     return originPoint.elevation;

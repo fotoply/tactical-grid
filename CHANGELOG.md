@@ -1,3 +1,27 @@
+# 2.4.0
+
+- New client setting: **Measurement > Combat Only**
+  - Disables **Measurement > Ruler Drag** and **Measurement > Token Drag** setting while not in combat
+- Fixed **PF2e HUD** actions not highlighting ranges on hover
+
+# 2.3.1
+
+- Fixed v13 range highlighter compatibility with `PF2e HUD` module
+- Fixed Font Awesome glyphs not rendering properly when displaying cover labels
+
+# 2.3.0
+
+- Added support for **PF2e Visioner** (https://foundryvtt.com/packages/pf2e-visioner) module as a cover calculator
+- Fixed setting rendering issues on smaller monitors
+
+# 2.2.0
+
+- Range Highlighter support for **BG3 Inspired HUD** module
+
+# 2.1.1
+
+- Fixed incorrect gridless scene distance calculations when 'Three-dimensional Tokens` setting is enabled
+
 # 2.1.0
 
 - Range Highlight support for **Shadow of the Demon Lord** game system
