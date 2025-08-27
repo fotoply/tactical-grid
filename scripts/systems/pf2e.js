@@ -1,10 +1,12 @@
 import { GenericSystem } from './generic.js';
+import { RangeHighlightAPI } from '../rangeHighlighter.js';
 
 export default class PF2e extends GenericSystem {
   /** @override */
   static onInit() {
     super.onInit();
     this._registerActorSheetListeners();
+    this._registerChatMessageListerners();
   }
 
   /** @override */
@@ -24,8 +26,7 @@ export default class PF2e extends GenericSystem {
 
     if (match) {
       const itemId = match.groups?.itemId;
-      const item = actor.items.get(itemId);
-      return item;
+      return actor.items.get(itemId);
     }
 
     return null;
@@ -45,9 +46,80 @@ export default class PF2e extends GenericSystem {
   }
 
   /** @override */
-  static getItemRange(item) {
+  static getItemRange(item, token) {
+      return this.getItemRange(item, token, { overlayIds: [] });
+  }
+
+  static getItemRange(item, token, opts = {}) {
     const ranges = [];
 
+    // Handle PF2e spells with overlays (minimal logic)
+    if (item?.type === 'spell') {
+      const actor = token?.actor ?? item?.actor;
+      const parseFeet = (val) => {
+        if (val == null) return null;
+        const s = String(val).trim().toLowerCase();
+        if (!s || s === 'varies') return null;
+        if (s === 'touch') return 0;
+        const m = s.match(/([0-9]+(?:\.[0-9]+)?)/);
+        if (!m) return null;
+        const n = Number(m[1]);
+        return Number.isFinite(n) ? n : null;
+      };
+      const addRange = (n) => {
+        if (!Number.isFinite(n)) return;
+        if (n === 10) ranges.push({ range: 10, cost: this._reachModifiedCost });
+        else ranges.push(n);
+      };
+      const seen = new Set();
+      const addFromSys = (spellData) => {
+        const rv = parseFeet(spellData?.range?.value);
+        if (rv === 0) {
+          let reach;
+          if (actor?.system?.traits?.value?.includes?.('swarm')) reach = 0;
+          else reach = actor?.getReach?.({ action: 'attack' }) || 5;
+          if (!seen.has(reach)) {
+            seen.add(reach);
+            addRange(reach);
+          }
+        } else if (Number.isFinite(rv)) {
+          if (!seen.has(rv)) {
+            seen.add(rv);
+            addRange(rv);
+          }
+        }
+        const area = spellData?.area;
+        if (area?.type === 'emanation' && Number.isFinite(area.value)) {
+          const d = Number(area.value);
+          if (!seen.has(d)) {
+            seen.add(d);
+            addRange(d);
+          }
+        }
+      };
+
+      const overlays = item.system?.overlays;
+      const overlayIds = opts?.overlayIds;
+
+      if (overlayIds?.length && overlays && typeof overlays === 'object') {
+        // Only collect the specified overlays
+        for (const id of overlayIds) {
+          const ov = overlays?.[id];
+          if (ov?.system) addFromSys(ov.system);
+        }
+        return ranges;
+      }
+
+      // Default: collect from all overlays; if none add base
+      if (overlays && typeof overlays === 'object') {
+        for (const ov of Object.values(overlays)) addFromSys(ov?.system ?? {});
+      }
+      if (!ranges.length) addFromSys(item.system);
+
+      return ranges;
+    }
+
+    // Non-spell items: original logic
     if (item.range) {
       let increment = item.range.increment;
       let maxRange = item.range.max;
@@ -107,7 +179,7 @@ export default class PF2e extends GenericSystem {
   }
 
   static _registerActorSheetListeners() {
-    Hooks.on('renderActorSheet', (actorSheet, html, options) => {
+    Hooks.on('renderActorSheet', (actorSheet, html) => {
       // Strike Actions
       const strikeSelector = '.actions-list.strikes-list > .strike';
       html
@@ -128,5 +200,48 @@ export default class PF2e extends GenericSystem {
         })
         .on('mouseleave', inventorySelector, () => this.hoverLeaveItem({ actorSheet }));
     });
+  }
+
+  static _registerChatMessageListerners() {
+    Hooks.on('renderChatMessage', (chatMessage, html) => {
+        const selector = 'button[data-action="spell-variant"]';
+        html
+        .on('mouseenter', selector, (event) => {
+            const overlayIdsRaw = $(event.currentTarget).attr('data-overlay-ids') || '';
+            const overlayIds = overlayIdsRaw.split(',').map((s) => s.trim()).filter(Boolean);
+            if (!overlayIds.length) return;
+            this.hoverSpellVariant({ chatMessage, overlayIds });
+        })
+        .on('mouseleave', selector, () => this.hoverLeaveSpellVariant({ chatMessage }));
+    });
+  }
+
+  static hoverSpellVariant({ chatMessage, overlayIds }) {
+    try {
+      const speaker = chatMessage?.speaker ?? chatMessage?.data?.speaker;
+      let token = speaker?.token ? canvas.tokens?.get?.(speaker.token) : null;
+      let actor = token?.actor;
+      if (!token || !actor) {
+        const inferred = this.getInferredActorAndToken?.() || {};
+        token = token || inferred.token;
+        actor = actor || inferred.actor;
+      }
+      if (!token || !actor) return;
+
+      const flags = chatMessage?.flags?.pf2e ?? {};
+      const uuid = flags?.origin?.uuid || flags?.item?.uuid || flags?.context?.origin?.uuid || flags?.context?.uuid;
+      const item = fromUuidSync(uuid);
+      if (!item || item.type !== 'spell') return;
+
+      const ranges = this.getItemRange(item, token, { overlayIds });
+      if (!ranges?.length) return;
+      RangeHighlightAPI.rangeHighlight(token, { ranges });
+    } catch (_e) {}
+  }
+
+  static hoverLeaveSpellVariant({ chatMessage }) {
+    const speaker = chatMessage?.speaker ?? chatMessage?.data?.speaker;
+    const token = speaker?.token ? canvas.tokens?.get?.(speaker.token) : null;
+    if (token) RangeHighlightAPI.clearRangeHighlight(token);
   }
 }
